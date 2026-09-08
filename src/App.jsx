@@ -2,8 +2,10 @@ import { useState } from "react";
 
 function App() {
   const [problem, setProblem] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!problem.trim()) {
@@ -11,7 +13,32 @@ function App() {
       return;
     }
 
-    alert("Oke! AI akan menganalisis masalah belajar kamu.");
+    setLoading(true);
+    setResult("");
+
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          problem,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Gagal menganalisis.");
+      }
+
+      setResult(data.result);
+    } catch (error) {
+      setResult("❌ Terjadi kesalahan: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,14 +63,24 @@ function App() {
           <textarea
             value={problem}
             onChange={(e) => setProblem(e.target.value)}
-            placeholder="Contoh: Saya kelas 11 dan besok ujian fisika. Saya masih belum paham hukum Newton dan cuma punya waktu 2 jam untuk belajar..."
+            placeholder="Contoh: Saya belum paham hukum Newton dan besok ada ujian..."
           />
 
-          <button type="submit">
-            🔍 Analisis Masalah Belajar
+          <button type="submit" disabled={loading}>
+            {loading ? "🤖 AI sedang menganalisis..." : "🔍 Analisis Masalah Belajar"}
           </button>
         </form>
       </section>
+
+      {result && (
+        <section className="card">
+          <h2>🧠 Hasil Analisis AI</h2>
+
+          <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.7" }}>
+            {result}
+          </div>
+        </section>
+      )}
     </main>
   );
 }
